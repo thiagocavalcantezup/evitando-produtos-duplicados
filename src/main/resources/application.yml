@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mydb}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_MODE:update}
+    show-sql: ${SHOW_SQL:true}
+    properties:
+      hibernate:
+        '[format_sql]': ${FORMAT_SQL:true}
+
+server:
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    '[br.com.zup]': debug
