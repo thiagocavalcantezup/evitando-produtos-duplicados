@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -98,21 +99,39 @@ public class CustomExceptionHandler {
         return ResponseEntity.status(httpStatus).body(erroPadronizado);
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(DataIntegrityViolationException.class)
-    @ResponseBody
-    ErroPadronizado handleConstraintViolation(DataIntegrityViolationException ex) {
-        HttpStatus badRequestStatus = HttpStatus.BAD_REQUEST;
-        Integer codigoHttp = badRequestStatus.value();
-        String mensagemHttp = badRequestStatus.getReasonPhrase();
-
+    public ResponseEntity<ErroPadronizado> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
         String mensagemGeral = "Violação de integridade dos dados.";
+        String mensagemEspecifica = "";
+        Throwable cause = ex.getCause();
+
+        if (cause instanceof ConstraintViolationException) {
+            String constraintName = ((ConstraintViolationException) cause).getConstraintName();
+
+            httpStatus = HttpStatus.UNPROCESSABLE_ENTITY;
+
+            switch (constraintName.toUpperCase()) {
+                case "UK_PRODUTO_CODIGO":
+                    mensagemGeral = "Houve um problema com a sua requisição.";
+                    mensagemEspecifica = "O produto já está cadastrado.";
+                    break;
+
+                default:
+                    mensagemEspecifica = "Violação de restrição dos dados.";
+                    break;
+            }
+        }
+
+        Integer codigoHttp = httpStatus.value();
+        String mensagemHttp = httpStatus.getReasonPhrase();
 
         ErroPadronizado erroPadronizado = new ErroPadronizado(
             codigoHttp, mensagemHttp, mensagemGeral
         );
+        erroPadronizado.adicionarErro(mensagemEspecifica);
 
-        return erroPadronizado;
+        return ResponseEntity.status(httpStatus).body(erroPadronizado);
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)
